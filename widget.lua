@@ -55,19 +55,23 @@ pulseBar.step = step
 local pulseWidget
 local pulseText
 if show_text then
-    pulseText = wibox.widget.textbox()
-    pulseText:set_align("center")
-    pulseWidget = wibox.container.margin(wibox.widget {
-                                              pulseBar,
-                                              pulseText,
-                                              layout = wibox.layout.stack
-                                            },
-                                            margin_right, margin_left,
-                                            margin_top, margin_bottom)
+	pulseText = wibox.widget.textbox()
+	pulseText:set_align("center")
+	pulseWidget = wibox.container.margin(
+		wibox.widget {
+			pulseBar,
+			pulseText,
+			layout = wibox.layout.stack
+		},
+		margin_right, margin_left,
+		margin_top, margin_bottom
+	)
 else
-    pulseWidget = wibox.container.margin(pulseBar,
-                                            margin_right, margin_left,
-                                            margin_top, margin_bottom)
+	pulseWidget = wibox.container.margin(
+		pulseBar,
+		margin_right, margin_left,
+		margin_top, margin_bottom
+	)
 end
 
 function pulseWidget.setColor(mute)
@@ -83,10 +87,9 @@ end
 local function _update()
 	pulseBar:set_value(p.Volume)
 	pulseWidget.setColor(p.Mute)
-    if show_text then
-        pulseText:set_markup('<span color="'..text_color..'">'..math.ceil(p.Volume*100)..'%</span>')
-
-    end
+	if show_text then
+		pulseText:set_markup('<span color="'..text_color..'">'..math.ceil(p.Volume*100)..'%</span>')
+	end
 end
 
 function pulseWidget.SetMixer(command)
@@ -94,24 +97,21 @@ function pulseWidget.SetMixer(command)
 end
 
 function pulseWidget.Up()
-	p:SetVolume(p.Volume + pulseBar.step)
-	_update()
+        p:SetVolume(p.Volume + pulseBar.step, _update)
+	--p:SetVolume(pulseBar.step, _update)
 end
 
 function pulseWidget.Down()
-	p:SetVolume(p.Volume - pulseBar.step)
-	_update()
+        p:SetVolume(p.Volume - pulseBar.step, _update)
+	--p:SetVolume(-pulseBar.step, _update)
 end
 
-
 function pulseWidget.ToggleMute()
-	p:ToggleMute()
-	_update()
+	p:ToggleMute(_update)
 end
 
 function pulseWidget.Update()
-	p:UpdateState()
-	 _update()
+	p:UpdateState(_update)
 end
 
 function pulseWidget.LaunchMixer()
@@ -134,5 +134,6 @@ pulseWidget.pulseBar = pulseBar
 
 -- initialize
 _update()
+pulseWidget.Update()
 
 return pulseWidget

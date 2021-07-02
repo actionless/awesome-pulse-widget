@@ -14,6 +14,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with APW. If not, see <http://www.gnu.org/licenses/>.
 
+local awful = require('awful')
+
 
 -- Simple pulseaudio command bindings for Lua.
 
@@ -37,16 +39,8 @@ function pulseaudio:Create()
 	return o
 end
 
-function pulseaudio:UpdateState()
-	local f = io.popen(cmd .. " dump")
-
-	-- if the cmd cannot be found
-	if f == nil then
-		return false
-	end
-
-	local out = f:read("*a")
-	f:close()
+function pulseaudio:UpdateState(callback)
+	awful.spawn.easy_async({cmd, "dump"}, function(out)
 
 	-- find default sink
 	default_sink = string.match(out, "set%-default%-sink ([^\n]+)")
@@ -72,17 +66,15 @@ function pulseaudio:UpdateState()
 	end
 
 	self.Mute = m == "yes"
-end
 
--- Run process and wait for it to end
-local function run(command)
-	local p = io.popen(command)
-	p:read("*a")
-	p:close()
+        if callback then
+          callback()
+        end
+    end)
 end
 
 -- Sets the volume of the default sink to vol from 0 to 1.
-function pulseaudio:SetVolume(vol)
+function pulseaudio:SetVolume(vol, callback)
 	if vol > 1 then
 		vol = 1
 	end
@@ -90,26 +82,35 @@ function pulseaudio:SetVolume(vol)
 	if vol < 0 then
 		vol = 0
 	end
+  self.Volume = vol
 
 	vol = vol * 0x10000
 	-- set…
-	run(cmd .. " set-sink-volume " .. default_sink .. " " .. string.format("0x%x", math.floor(vol)))
-
-	-- …and update values
-	self:UpdateState()
+	awful.spawn.easy_async(
+          { cmd, "set-sink-volume", default_sink, string.format("0x%x", math.floor(vol)) },
+          function()
+            -- …and update values
+            self:UpdateState(callback)
+          end
+        )
 end
 
 
 -- Toggles the mute flag of the default default_sink.
-function pulseaudio:ToggleMute()
+function pulseaudio:ToggleMute(callback)
+        local mute_cmd
 	if self.Mute then
-		run(cmd .. " set-sink-mute " .. default_sink .. " 0")
+		mute_cmd = { cmd, "set-sink-mute", default_sink, "0"}
 	else
-		run(cmd .. " set-sink-mute " .. default_sink .. " 1")
+		mute_cmd = { cmd, "set-sink-mute", default_sink, "1"}
 	end
-
-	-- …and updates values.
-	self:UpdateState()
+	awful.spawn.easy_async(
+          mute_cmd,
+          function()
+            -- …and update values
+            self:UpdateState(callback)
+          end
+        )
 end
 
 
