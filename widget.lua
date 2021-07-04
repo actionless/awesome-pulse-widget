@@ -96,13 +96,23 @@ function pulseWidget.SetMixer(command)
 	mixer = command
 end
 
-function pulseWidget.Up()
-        p:SetVolume(p.Volume + pulseBar.step, _update)
+function pulseWidget.Up(callback)
+	p:SetVolume(p.Volume + pulseBar.step, function()
+		_update()
+		if callback then
+			callback()
+		end
+	end)
 	--p:SetVolume(pulseBar.step, _update)
 end
 
-function pulseWidget.Down()
-        p:SetVolume(p.Volume - pulseBar.step, _update)
+function pulseWidget.Down(callback)
+	p:SetVolume(p.Volume - pulseBar.step, function()
+		_update()
+		if callback then
+			callback()
+		end
+	end)
 	--p:SetVolume(-pulseBar.step, _update)
 end
 
@@ -120,11 +130,20 @@ end
 
 
 -- register mouse button actions
+local is_already_scrolling = false
 pulseWidget:buttons(awful.util.table.join(
 		awful.button({ }, 1, pulseWidget.ToggleMute),
 		awful.button({ }, 3, pulseWidget.LaunchMixer),
-		awful.button({ }, 4, pulseWidget.Up),
-		awful.button({ }, 5, pulseWidget.Down)
+		awful.button({ }, 4, function()
+			if is_already_scrolling then return end
+			is_already_scrolling = true
+			pulseWidget.Up(function() is_already_scrolling = false end)
+		end),
+		awful.button({ }, 5, function()
+			if is_already_scrolling then return end
+			is_already_scrolling = true
+			pulseWidget.Down(function() is_already_scrolling = false end)
+		end)
 	)
 )
 
@@ -134,6 +153,22 @@ pulseWidget.pulseBar = pulseBar
 
 -- initialize
 _update()
-pulseWidget.Update()
+
+local post_startup_timer
+local post_startup_timer_timeout = 0.1
+post_startup_timer = require('gears.timer'){
+	callback = function()
+		pulseWidget.Update()
+		if pulseWidget.pulse.Volume > 0 or pulseWidget.pulse.Mute then
+			post_startup_timer:stop()
+		else
+			post_startup_timer_timeout = post_startup_timer_timeout * 2
+			post_startup_timer.timeout = post_startup_timer_timeout
+		end
+	end,
+	timeout=post_startup_timer_timeout,
+	autostart=true,
+	call_now=false,
+}
 
 return pulseWidget

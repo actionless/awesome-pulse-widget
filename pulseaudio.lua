@@ -39,38 +39,43 @@ function pulseaudio:Create()
 	return o
 end
 
+local update_pending = false
+
 function pulseaudio:UpdateState(callback)
+	if update_pending then return end
+	update_pending = true
 	awful.spawn.easy_async({cmd, "dump"}, function(out)
 
-	-- find default sink
-	default_sink = string.match(out, "set%-default%-sink ([^\n]+)")
+		-- find default sink
+		default_sink = string.match(out, "set%-default%-sink ([^\n]+)")
 
-	if default_sink == nil then
-		default_sink = ""
-		return false
-	end
-
-	-- retrieve volume of default sink
-	for sink, value in string.gmatch(out, "set%-sink%-volume ([^%s]+) (0x%x+)") do
-		if sink == default_sink then
-			self.Volume = tonumber(value) / 0x10000
+		if default_sink == nil then
+			default_sink = ""
+			return false
 		end
-	end
 
-	-- retrieve mute state of default sink
-	local m
-	for sink, value in string.gmatch(out, "set%-sink%-mute ([^%s]+) (%a+)") do
-		if sink == default_sink then
-			m = value
+		-- retrieve volume of default sink
+		for sink, value in string.gmatch(out, "set%-sink%-volume ([^%s]+) (0x%x+)") do
+			if sink == default_sink then
+				self.Volume = tonumber(value) / 0x10000
+			end
 		end
-	end
 
-	self.Mute = m == "yes"
+		-- retrieve mute state of default sink
+		local m
+		for sink, value in string.gmatch(out, "set%-sink%-mute ([^%s]+) (%a+)") do
+			if sink == default_sink then
+				m = value
+			end
+		end
 
-        if callback then
-          callback()
-        end
-    end)
+		self.Mute = m == "yes"
+
+		update_pending = false
+		if callback then
+			callback()
+		end
+	end)
 end
 
 -- Sets the volume of the default sink to vol from 0 to 1.
@@ -82,35 +87,35 @@ function pulseaudio:SetVolume(vol, callback)
 	if vol < 0 then
 		vol = 0
 	end
-  self.Volume = vol
+	self.Volume = vol
 
 	vol = vol * 0x10000
 	-- set…
 	awful.spawn.easy_async(
-          { cmd, "set-sink-volume", default_sink, string.format("0x%x", math.floor(vol)) },
-          function()
-            -- …and update values
-            self:UpdateState(callback)
-          end
-        )
+		{ cmd, "set-sink-volume", default_sink, string.format("0x%x", math.floor(vol)) },
+		function()
+			-- …and update values
+			self:UpdateState(callback)
+		end
+	)
 end
 
 
 -- Toggles the mute flag of the default default_sink.
 function pulseaudio:ToggleMute(callback)
-        local mute_cmd
+	local mute_cmd
 	if self.Mute then
 		mute_cmd = { cmd, "set-sink-mute", default_sink, "0"}
 	else
 		mute_cmd = { cmd, "set-sink-mute", default_sink, "1"}
 	end
 	awful.spawn.easy_async(
-          mute_cmd,
-          function()
-            -- …and update values
-            self:UpdateState(callback)
-          end
-        )
+		mute_cmd,
+		function()
+			-- …and update values
+			self:UpdateState(callback)
+		end
+	)
 end
 
 
