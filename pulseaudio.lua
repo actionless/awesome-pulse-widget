@@ -15,6 +15,7 @@
 -- along with APW. If not, see <http://www.gnu.org/licenses/>.
 
 local awful = require('awful')
+local gears = require('gears')
 
 
 -- Simple pulseaudio command bindings for Lua.
@@ -45,29 +46,31 @@ function pulseaudio:UpdateState(callback)
 	if update_pending then return end
 	update_pending = true
 	awful.spawn.easy_async({cmd, "dump"}, function(out)
+		gears.protected_call(function()
 
-		-- find default sink
-		default_sink = string.match(out, "set%-default%-sink ([^\n]+)")
+			-- find default sink
+			default_sink = string.match(out, "set%-default%-sink ([^\n]+)")
 
-		if default_sink == nil then
-			default_sink = ""
-			return false
-		end
-
-		-- retrieve volume of default sink
-		for sink, value in string.gmatch(out, "set%-sink%-volume ([^%s]+) (0x%x+)") do
-			if sink == default_sink then
-				self.Volume = tonumber(value) / 0x10000
+			if default_sink == nil then
+				default_sink = ""
+				return false
 			end
-		end
 
-		-- retrieve mute state of default sink
-		local m
-		for sink, value in string.gmatch(out, "set%-sink%-mute ([^%s]+) (%a+)") do
-			if sink == default_sink then
-				m = value
+			-- retrieve volume of default sink
+			for sink, value in string.gmatch(out, "set%-sink%-volume ([^%s]+) (0x%x+)") do
+				if sink == default_sink then
+					self.Volume = tonumber(value) / 0x10000
+				end
 			end
-		end
+
+			-- retrieve mute state of default sink
+			local m
+			for sink, value in string.gmatch(out, "set%-sink%-mute ([^%s]+) (%a+)") do
+				if sink == default_sink then
+					m = value
+				end
+			end
+		end)
 
 		self.Mute = m == "yes"
 
