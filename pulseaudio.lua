@@ -46,14 +46,14 @@ function pulseaudio:UpdateState(callback)
 	if update_pending then return end
 	update_pending = true
 	awful.spawn.easy_async({cmd, "dump"}, function(out)
+		local result = true
 		gears.protected_call(function()
-
 			-- find default sink
 			default_sink = string.match(out, "set%-default%-sink ([^\n]+)")
-
 			if default_sink == nil then
 				default_sink = ""
-				return false
+				result = false
+				return
 			end
 
 			-- retrieve volume of default sink
@@ -64,19 +64,16 @@ function pulseaudio:UpdateState(callback)
 			end
 
 			-- retrieve mute state of default sink
-			local m
 			for sink, value in string.gmatch(out, "set%-sink%-mute ([^%s]+) (%a+)") do
 				if sink == default_sink then
-					m = value
+					self.Mute = value == "yes"
 				end
 			end
 		end)
 
-		self.Mute = m == "yes"
-
 		update_pending = false
 		if callback then
-			callback()
+			callback(result)
 		end
 	end)
 end
