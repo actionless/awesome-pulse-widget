@@ -14,6 +14,20 @@
 -- You should have received a copy of the GNU General Public License
 -- along with APW. If not, see <http://www.gnu.org/licenses/>.
 
+local awful = require("awful")
+local wibox = require("wibox")
+local beautiful = require("beautiful")
+local spawn_with_shell = awful.util.spawn_with_shell or awful.spawn.with_shell
+
+local pacmd = require("apw.pacmd")
+local pactl = require("apw.pactl")
+local backends = {
+  pacmd = pacmd,
+  pactl = pactl,
+}
+local backend
+local pulseBar = wibox.widget.progressbar()
+
 -- Configuration variables
 local width         = 40        -- width in pixels of progressbar
 local margin_right  = 0         -- right margin in pixels of progressbar
@@ -28,15 +42,11 @@ local color_bg_mute = '#532a15' -- background color when muted
 local mixer         = 'pavucontrol' -- mixer command
 local show_text     = false     -- show percentages on progressbar
 local text_color    = '#fff' -- color of text
-
+pulseBar.forced_width = width
+pulseBar.step = step
+local default_backend = 'pulseaudio'
 -- End of configuration
 
-local awful = require("awful")
-local spawn_with_shell = awful.util.spawn_with_shell or awful.spawn.with_shell
-local wibox = require("wibox")
-local beautiful = require("beautiful")
-local pulseaudio = require("apw.pulseaudio")
-local math = require("math")
 -- default colors overridden by Beautiful theme
 color = beautiful.apw_fg_color or color
 color_bg = beautiful.apw_bg_color or color_bg
@@ -45,14 +55,10 @@ color_bg_mute = beautiful.apw_mute_bg_color or color_bg_mute
 show_text = beautiful.apw_show_text or show_text
 text_color = beautiful.apw_text_colot or text_color
 
-local p = pulseaudio:Create()
 
-local pulseBar = wibox.widget.progressbar()
-
-pulseBar.forced_width = width
-pulseBar.step = step
 
 local pulseWidget
+
 local pulseText
 if show_text then
 	pulseText = wibox.widget.textbox()
@@ -84,11 +90,11 @@ function pulseWidget.setColor(mute)
 	end
 end
 
-local function _update()
-	pulseBar:set_value(p.Volume)
-	pulseWidget.setColor(p.Mute)
+function pulseWidget._redraw()
+	pulseBar:set_value(backend.Volume)
+	pulseWidget.setColor(backend.Mute)
 	if show_text then
-		pulseText:set_markup('<span color="'..text_color..'">'..math.ceil(p.Volume*100)..'%</span>')
+		pulseText:set_markup('<span color="'..text_color..'">'..math.ceil(backend.Volume*100)..'%</span>')
 	end
 end
 
@@ -97,31 +103,46 @@ function pulseWidget.SetMixer(command)
 end
 
 function pulseWidget.Up(callback)
-	p:SetVolume(p.Volume + pulseBar.step, function()
-		_update()
+	backend:SetVolume(backend.Volume + pulseBar.step, function()
+		pulseWidget._redraw()
 		if callback then
 			callback()
 		end
 	end)
-	--p:SetVolume(pulseBar.step, _update)
 end
 
 function pulseWidget.Down(callback)
-	p:SetVolume(p.Volume - pulseBar.step, function()
-		_update()
+	backend:SetVolume(backend.Volume - pulseBar.step, function()
+		pulseWidget._redraw()
 		if callback then
 			callback()
 		end
 	end)
-	--p:SetVolume(-pulseBar.step, _update)
 end
 
 function pulseWidget.ToggleMute()
-	p:ToggleMute(_update)
+	backend:ToggleMute(pulseWidget._redraw)
 end
 
-function pulseWidget.Update()
-	p:UpdateState(_update)
+function pulseWidget:_checkInit(args, ...)
+  if not pulseWidget.backend then
+    args = args or {}
+    backend = backends[args.backend or default_backend]:Create()
+    pulseWidget.backend = backend
+    pulseWidget.pulseBar = pulseBar
+    pulseWidget._redraw()
+  end
+  return pulseWidget
+end
+
+function pulseWidget.Update(callback)
+  pulseWidget:_checkInit()
+  backend:UpdateState(function()
+    if callback then
+      callback()
+    end
+    pulseWidget._redraw()
+  end)
 end
 
 function pulseWidget.LaunchMixer()
@@ -147,28 +168,26 @@ pulseWidget:buttons(awful.util.table.join(
 	)
 )
 
-pulseWidget.pulse = p
-pulseWidget.pulseBar = pulseBar
-
-
--- initialize
-_update()
 
 local post_startup_timer
 local post_startup_timer_timeout = 0.1
 post_startup_timer = require('gears.timer'){
 	callback = function()
-		pulseWidget.Update()
-		if pulseWidget.pulse.Volume > 0 or pulseWidget.pulse.Mute then
-			post_startup_timer:stop()
-		else
-			post_startup_timer_timeout = post_startup_timer_timeout * 2
-			post_startup_timer.timeout = post_startup_timer_timeout
-		end
+		pulseWidget.Update(function()
+                  if pulseWidget.backend.Volume > 0 or pulseWidget.backend.Mute then
+                          post_startup_timer:stop()
+                  else
+                          post_startup_timer_timeout = post_startup_timer_timeout * 2
+                          post_startup_timer.timeout = post_startup_timer_timeout
+                  end
+                end)
 	end,
 	timeout=post_startup_timer_timeout,
 	autostart=true,
 	call_now=false,
 }
 
-return pulseWidget
+local function init(args, ...)
+  return pulseWidget:_checkInit(args, ...)
+end
+return setmetatable(pulseWidget, { __call = function(_, ...) return init(...) end })
