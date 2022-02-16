@@ -44,7 +44,7 @@ local show_text     = false     -- show percentages on progressbar
 local text_color    = '#fff' -- color of text
 pulseBar.forced_width = width
 pulseBar.step = step
-local default_backend = 'pulseaudio'
+local default_backend = 'pactl'
 -- End of configuration
 
 -- default colors overridden by Beautiful theme
