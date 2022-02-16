@@ -61,67 +61,67 @@ local pulseWidget
 
 local pulseText
 if show_text then
-	pulseText = wibox.widget.textbox()
-	pulseText:set_align("center")
-	pulseWidget = wibox.container.margin(
-		wibox.widget {
-			pulseBar,
-			pulseText,
-			layout = wibox.layout.stack
-		},
-		margin_right, margin_left,
-		margin_top, margin_bottom
-	)
+  pulseText = wibox.widget.textbox()
+  pulseText:set_align("center")
+  pulseWidget = wibox.container.margin(
+    wibox.widget {
+      pulseBar,
+      pulseText,
+      layout = wibox.layout.stack
+    },
+    margin_right, margin_left,
+    margin_top, margin_bottom
+  )
 else
-	pulseWidget = wibox.container.margin(
-		pulseBar,
-		margin_right, margin_left,
-		margin_top, margin_bottom
-	)
+  pulseWidget = wibox.container.margin(
+    pulseBar,
+    margin_right, margin_left,
+    margin_top, margin_bottom
+  )
 end
 
 function pulseWidget.setColor(mute)
-	if mute then
-		pulseBar:set_color(color_mute)
-		pulseBar:set_background_color(color_bg_mute)
-	else
-		pulseBar:set_color(color)
-		pulseBar:set_background_color(color_bg)
-	end
+  if mute then
+    pulseBar:set_color(color_mute)
+    pulseBar:set_background_color(color_bg_mute)
+  else
+    pulseBar:set_color(color)
+    pulseBar:set_background_color(color_bg)
+  end
 end
 
 function pulseWidget._redraw()
-	pulseBar:set_value(backend.Volume)
-	pulseWidget.setColor(backend.Mute)
-	if show_text then
-		pulseText:set_markup('<span color="'..text_color..'">'..math.ceil(backend.Volume*100)..'%</span>')
-	end
+  pulseBar:set_value(backend.Volume)
+  pulseWidget.setColor(backend.Mute)
+  if show_text then
+    pulseText:set_markup('<span color="'..text_color..'">'..math.ceil(backend.Volume*100)..'%</span>')
+  end
 end
 
 function pulseWidget.SetMixer(command)
-	mixer = command
+  mixer = command
 end
 
 function pulseWidget.Up(callback)
-	backend:SetVolume(backend.Volume + pulseBar.step, function()
-		pulseWidget._redraw()
-		if callback then
-			callback()
-		end
-	end)
+  backend:SetVolume(backend.Volume + pulseBar.step, function()
+    pulseWidget._redraw()
+    if callback then
+      callback()
+    end
+  end)
 end
 
 function pulseWidget.Down(callback)
-	backend:SetVolume(backend.Volume - pulseBar.step, function()
-		pulseWidget._redraw()
-		if callback then
-			callback()
-		end
-	end)
+  backend:SetVolume(backend.Volume - pulseBar.step, function()
+    pulseWidget._redraw()
+    if callback then
+      callback()
+    end
+  end)
 end
 
 function pulseWidget.ToggleMute()
-	backend:ToggleMute(pulseWidget._redraw)
+  backend:ToggleMute(pulseWidget._redraw)
 end
 
 function pulseWidget:_checkInit(args, ...)
@@ -146,34 +146,34 @@ function pulseWidget.Update(callback)
 end
 
 function pulseWidget.LaunchMixer()
-	spawn_with_shell( mixer )
+  spawn_with_shell( mixer )
 end
 
 
 -- register mouse button actions
 local is_already_scrolling = false
 pulseWidget:buttons(awful.util.table.join(
-		awful.button({ }, 1, pulseWidget.ToggleMute),
-		awful.button({ }, 3, pulseWidget.LaunchMixer),
-		awful.button({ }, 4, function()
-			if is_already_scrolling then return end
-			is_already_scrolling = true
-			pulseWidget.Up(function() is_already_scrolling = false end)
-		end),
-		awful.button({ }, 5, function()
-			if is_already_scrolling then return end
-			is_already_scrolling = true
-			pulseWidget.Down(function() is_already_scrolling = false end)
-		end)
-	)
+    awful.button({ }, 1, pulseWidget.ToggleMute),
+    awful.button({ }, 3, pulseWidget.LaunchMixer),
+    awful.button({ }, 4, function()
+      if is_already_scrolling then return end
+      is_already_scrolling = true
+      pulseWidget.Up(function() is_already_scrolling = false end)
+    end),
+    awful.button({ }, 5, function()
+      if is_already_scrolling then return end
+      is_already_scrolling = true
+      pulseWidget.Down(function() is_already_scrolling = false end)
+    end)
+  )
 )
 
 
 local post_startup_timer
 local post_startup_timer_timeout = 0.1
 post_startup_timer = require('gears.timer'){
-	callback = function()
-		pulseWidget.Update(function()
+  callback = function()
+    pulseWidget.Update(function()
                   if pulseWidget.backend.Volume > 0 or pulseWidget.backend.Mute then
                           post_startup_timer:stop()
                   else
@@ -181,10 +181,10 @@ post_startup_timer = require('gears.timer'){
                           post_startup_timer.timeout = post_startup_timer_timeout
                   end
                 end)
-	end,
-	timeout=post_startup_timer_timeout,
-	autostart=true,
-	call_now=false,
+  end,
+  timeout=post_startup_timer_timeout,
+  autostart=true,
+  call_now=false,
 }
 
 local function init(args, ...)

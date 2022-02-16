@@ -27,17 +27,17 @@ local cmd = "pactl"
 local default_sink = "@DEFAULT_SINK@"
 
 function pipewire:Create()
-	local o = {}
-	setmetatable(o, self)
-	self.__index = self
+  local o = {}
+  setmetatable(o, self)
+  self.__index = self
 
-	o.Volume = 0     -- volume of default sink
-	o.Mute = false   -- state of the mute flag of the default sink
+  o.Volume = 0     -- volume of default sink
+  o.Mute = false   -- state of the mute flag of the default sink
 
-	-- retrieve current state from pipewire
-	pipewire.UpdateState(o)
+  -- retrieve current state from pipewire
+  pipewire.UpdateState(o)
 
-	return o
+  return o
 end
 
 local update_pending = false
@@ -69,41 +69,41 @@ end
 
 -- Sets the volume of the default sink to vol from 0 to 1.
 function pipewire:SetVolume(vol, callback)
-	if vol > 1 then
-		vol = 1
-	end
+  if vol > 1 then
+    vol = 1
+  end
 
-	if vol < 0 then
-		vol = 0
-	end
-	self.Volume = vol
+  if vol < 0 then
+    vol = 0
+  end
+  self.Volume = vol
 
-	-- set…
-	awful.spawn.easy_async(
-		{ cmd, "set-sink-volume", default_sink, string.format("%d%%", math.floor(vol*100)) },
-		function()
-			-- …and update values
-			self:UpdateState(callback)
-		end
-	)
+  -- set…
+  awful.spawn.easy_async(
+    { cmd, "set-sink-volume", default_sink, string.format("%d%%", math.floor(vol*100)) },
+    function()
+      -- …and update values
+      self:UpdateState(callback)
+    end
+  )
 end
 
 
 -- Toggles the mute flag of the default default_sink.
 function pipewire:ToggleMute(callback)
-	local mute_cmd
-	if self.Mute then
-		mute_cmd = { cmd, "set-sink-mute", default_sink, "0"}
-	else
-		mute_cmd = { cmd, "set-sink-mute", default_sink, "1"}
-	end
-	awful.spawn.easy_async(
-		mute_cmd,
-		function()
-			-- …and update values
-			self:UpdateState(callback)
-		end
-	)
+  local mute_cmd
+  if self.Mute then
+    mute_cmd = { cmd, "set-sink-mute", default_sink, "0"}
+  else
+    mute_cmd = { cmd, "set-sink-mute", default_sink, "1"}
+  end
+  awful.spawn.easy_async(
+    mute_cmd,
+    function()
+      -- …and update values
+      self:UpdateState(callback)
+    end
+  )
 end
 
 
