@@ -47,21 +47,22 @@ function pipewire:UpdateState(callback)
   update_pending = true
   awful.spawn.easy_async({cmd, "get-sink-volume", default_sink}, function(out)
 
-    local result = true
-    --gears.protected_call(function()
+    local result = false
+    gears.protected_call(function()
       local value = string.gmatch(out, 'Volume:.* (%d+)%% .*')()
       self.Volume = tonumber(value) / 100
-      awful.spawn.easy_async({cmd, "get-sink-mute", "@DEFAULT_SINK@"}, function(out2)
-
+    end)
+    awful.spawn.easy_async({cmd, "get-sink-mute", "@DEFAULT_SINK@"}, function(out2)
+      gears.protected_call(function()
         local value2 = string.gmatch(out2, 'Mute: (.*)\n')()
         self.Mute = value2 == "yes"
-        update_pending = false
-        if callback then
-          callback(result)
-        end
-
+        result = true
       end)
-    --end)
+      if callback then
+        callback(result)
+      end
+      update_pending = false
+    end)
 
   end)
 end
