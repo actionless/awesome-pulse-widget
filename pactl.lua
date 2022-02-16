@@ -48,7 +48,7 @@ function pipewire:UpdateState(callback)
   awful.spawn.easy_async({cmd, "get-sink-volume", default_sink}, function(out)
 
     local result = true
-    gears.protected_call(function()
+    --gears.protected_call(function()
       local value = string.gmatch(out, 'Volume:.* (%d+)%% .*')()
       self.Volume = tonumber(value) / 100
       awful.spawn.easy_async({cmd, "get-sink-mute", "@DEFAULT_SINK@"}, function(out2)
@@ -61,7 +61,7 @@ function pipewire:UpdateState(callback)
         end
 
       end)
-    end)
+    --end)
 
   end)
 end
