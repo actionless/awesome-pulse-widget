@@ -1,9 +1,10 @@
+local widget = require('apw.widget')
 local module = {
-  widget = require('apw.widget'),
+  widget = widget,
   pactl = require('apw.pactl'),
   pacmd = require('apw.pacmd')
 }
 return setmetatable(module, {
-  __index = module.widget,
-  __call = function(_, ...) return module.widget(...) end
+  __index = widget,
+  __call = function(_, ...) return widget(...) end
 })
