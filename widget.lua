@@ -25,7 +25,6 @@ local backends = {
   pacmd = pacmd,
   pactl = pactl,
 }
-local backend
 local pulseBar = wibox.widget.progressbar()
 
 -- Configuration variables
@@ -91,10 +90,10 @@ function pulseWidget.setColor(mute)
 end
 
 function pulseWidget._redraw()
-  pulseBar:set_value(backend.Volume)
-  pulseWidget.setColor(backend.Mute)
+  pulseBar:set_value(pulseWidget.backend.Volume)
+  pulseWidget.setColor(pulseWidget.backend.Mute)
   if show_text then
-    pulseText:set_markup('<span color="'..text_color..'">'..math.ceil(backend.Volume*100)..'%</span>')
+    pulseText:set_markup('<span color="'..text_color..'">'..math.ceil(pulseWidget.backend.Volume*100)..'%</span>')
   end
 end
 
@@ -103,7 +102,7 @@ function pulseWidget.SetMixer(command)
 end
 
 function pulseWidget.Up(callback)
-  backend:SetVolume(backend.Volume + pulseBar.step, function()
+  pulseWidget.backend:SetVolume(pulseWidget.backend.Volume + pulseBar.step, function()
     pulseWidget._redraw()
     if callback then
       callback()
@@ -112,7 +111,7 @@ function pulseWidget.Up(callback)
 end
 
 function pulseWidget.Down(callback)
-  backend:SetVolume(backend.Volume - pulseBar.step, function()
+  pulseWidget.backend:SetVolume(pulseWidget.backend.Volume - pulseBar.step, function()
     pulseWidget._redraw()
     if callback then
       callback()
@@ -121,14 +120,13 @@ function pulseWidget.Down(callback)
 end
 
 function pulseWidget.ToggleMute()
-  backend:ToggleMute(pulseWidget._redraw)
+  pulseWidget.backend:ToggleMute(pulseWidget._redraw)
 end
 
 function pulseWidget:_checkInit(args, ...)
   if not pulseWidget.backend then
     args = args or {}
-    backend = backends[args.backend or default_backend]:Create()
-    pulseWidget.backend = backend
+    pulseWidget.backend = backends[args.backend or default_backend]:Create()
     pulseWidget.pulseBar = pulseBar
     pulseWidget._redraw()
   end
@@ -137,7 +135,7 @@ end
 
 function pulseWidget.Update(callback)
   pulseWidget:_checkInit()
-  backend:UpdateState(function()
+  pulseWidget.backend:UpdateState(function()
     if callback then
       callback()
     end
