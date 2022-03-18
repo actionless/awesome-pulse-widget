@@ -92,12 +92,23 @@ function pulseaudio:SetVolume(vol, callback)
   vol = vol * 0x10000
   -- set…
   awful.spawn.easy_async(
-    { cmd, "set-sink-volume", default_sink, string.format("0x%x", math.floor(vol)) },
+    --@TODO: use floats instead of rounding
+    { cmd, "set-sink-volume", default_sink, string.format("0x%x", gears.math.round(vol)) },
     function()
       -- …and update values
       self:UpdateState(callback)
     end
   )
+end
+
+--@TODO: implement proper ChangeVolume using deltas
+function pulseaudio:ChangeVolume(vol_delta, callback)
+  if vol_delta > 1 then
+    vol_delta = 1
+  elseif vol_delta < -1 then
+    vol_delta = -1
+  end
+  self:SetVolume(self.Volume + vol_delta, callback)
 end
 
 

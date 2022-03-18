@@ -80,7 +80,30 @@ function pipewire:SetVolume(vol, callback)
 
   -- set…
   awful.spawn.easy_async(
-    { cmd, "set-sink-volume", default_sink, string.format("%d%%", math.floor(vol*100)) },
+    { cmd, "set-sink-volume", default_sink, string.format("%f%%", vol*100) },
+    function()
+      -- …and update values
+      self:UpdateState(callback)
+    end
+  )
+end
+
+-- Sets the volume of the default sink to vol from 0 to 1.
+function pipewire:ChangeVolume(vol, callback)
+  if vol > 1 then
+    vol = 1
+  elseif vol < -1 then
+    vol = -1
+  end
+  self.Volume = self.Volume + vol
+
+  -- set…
+
+  awful.spawn.easy_async(
+  { cmd, "set-sink-volume", default_sink, string.format(
+      "%s%f%%", vol > 0 and '+' or '', vol*100
+    )
+  },
     function()
       -- …and update values
       self:UpdateState(callback)
