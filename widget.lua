@@ -101,8 +101,8 @@ function pulseWidget.SetMixer(command)
   mixer = command
 end
 
-function pulseWidget.Up(callback)
-  pulseWidget.backend:SetVolume(pulseWidget.backend.Volume + pulseBar.step, function()
+function pulseWidget.Up(callback, step)
+  pulseWidget.backend:ChangeVolume(step or pulseBar.step, function()
     pulseWidget._redraw()
     if callback then
       callback()
@@ -110,8 +110,8 @@ function pulseWidget.Up(callback)
   end)
 end
 
-function pulseWidget.Down(callback)
-  pulseWidget.backend:SetVolume(pulseWidget.backend.Volume - pulseBar.step, function()
+function pulseWidget.Down(callback, step)
+  pulseWidget.backend:ChangeVolume(-(step or pulseBar.step), function()
     pulseWidget._redraw()
     if callback then
       callback()
