@@ -88,14 +88,17 @@ function pipewire:SetVolume(vol, callback)
   )
 end
 
+local change_pending = false
 -- Sets the volume of the default sink to vol from 0 to 1.
 function pipewire:ChangeVolume(vol, callback)
+  if change_pending then return end
   if vol > 1 then
     vol = 1
   elseif vol < -1 then
     vol = -1
   end
   self.Volume = self.Volume + vol
+  change_pending = true
 
   -- set…
 
@@ -106,7 +109,10 @@ function pipewire:ChangeVolume(vol, callback)
   },
     function()
       -- …and update values
-      self:UpdateState(callback)
+      self:UpdateState(function(o)
+        change_pending = false
+        return callback(o)
+      end)
     end
   )
 end
