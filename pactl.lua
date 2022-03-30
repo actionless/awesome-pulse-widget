@@ -25,6 +25,7 @@ local pipewire = {}
 
 local cmd = "pactl"
 local default_sink = "@DEFAULT_SINK@"
+local INT_VOLUME = 65536
 
 function pipewire:Create()
   local o = {}
@@ -80,7 +81,7 @@ function pipewire:SetVolume(vol, callback)
 
   -- set…
   awful.spawn.easy_async(
-    { cmd, "set-sink-volume", default_sink, string.format("%f%%", vol*100) },
+    { cmd, "set-sink-volume", default_sink, string.format("%d", vol*INT_VOLUME) },
     function()
       -- …and update values
       self:UpdateState(callback)
@@ -97,14 +98,18 @@ function pipewire:ChangeVolume(vol, callback)
   elseif vol < -1 then
     vol = -1
   end
-  self.Volume = self.Volume + vol
+  if (
+      ((vol > 0) and ((self.Volume + vol) > 1)) or
+      ((vol < 0) and ((self.Volume + vol) < 0))
+  ) then
+    return
+  end
   change_pending = true
 
   -- set…
-
   awful.spawn.easy_async(
   { cmd, "set-sink-volume", default_sink, string.format(
-      "%s%f%%", vol > 0 and '+' or '', vol*100
+      "%s%d", vol > 0 and '+' or '', vol*INT_VOLUME
     )
   },
     function()
