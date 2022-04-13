@@ -26,6 +26,8 @@ local pipewire = {}
 local cmd = "pactl"
 local default_sink = "@DEFAULT_SINK@"
 local INT_VOLUME = 65536
+local VOLUME_UP_ACCELERATION = 0.09  -- 0.03
+local VOLUME_DOWN_ACCELERATION = 0.35  -- 0.15
 
 function pipewire:Create()
   local o = {}
@@ -90,21 +92,59 @@ function pipewire:SetVolume(vol, callback)
 end
 
 local change_pending = false
+local change_pending_multiplier = 1
+local change_pending_multiplier_reset
+change_pending_multiplier_reset = gears.timer({
+  callback=function()
+    if not change_pending then
+      change_pending_multiplier = 1
+      change_pending_multiplier_reset:stop()
+    end
+  end,
+  autostart=false,
+  call_now=false,
+  timeout=0.1,
+})
+local change_pending_reset
+change_pending_reset = gears.timer({
+  callback=function()
+    change_pending = false
+    change_pending_reset:stop()
+  end,
+  autostart=false,
+  call_now=false,
+  timeout=3,
+})
+
+
 -- Sets the volume of the default sink to vol from 0 to 1.
 function pipewire:ChangeVolume(vol, callback)
-  if change_pending then return end
+  local volume_change_acceleration = VOLUME_UP_ACCELERATION
+  if vol < 0 then
+    volume_change_acceleration = VOLUME_DOWN_ACCELERATION
+  end
+  if change_pending then
+    change_pending_multiplier = change_pending_multiplier + volume_change_acceleration
+    return
+  end
+  vol = vol * change_pending_multiplier
   if vol > 1 then
     vol = 1
   elseif vol < -1 then
     vol = -1
   end
   if (
-      ((vol > 0) and ((self.Volume + vol) > 1)) or
-      ((vol < 0) and ((self.Volume + vol) < 0))
+      (vol > 0) and ((self.Volume + vol) > 1)
   ) then
-    return
+    vol = 1 - self.Volume
+  elseif (
+      (vol < 0) and ((self.Volume + vol) < 0)
+  ) then
+    vol = -self.Volume
   end
+  if vol == 0 then return end
   change_pending = true
+  change_pending_reset:again()
 
   -- set…
   awful.spawn.easy_async(
@@ -116,6 +156,8 @@ function pipewire:ChangeVolume(vol, callback)
       -- …and update values
       self:UpdateState(function(o)
         change_pending = false
+        change_pending_multiplier = change_pending_multiplier + volume_change_acceleration
+        change_pending_multiplier_reset:again()
         return callback(o)
       end)
     end
