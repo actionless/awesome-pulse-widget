@@ -18,6 +18,7 @@ local awful = require("awful")
 local wibox = require("wibox")
 local beautiful = require("beautiful")
 local spawn_with_shell = awful.util.spawn_with_shell or awful.spawn.with_shell
+local g_timer = require('gears.timer')
 
 local pacmd = require("apw.pacmd")
 local pactl = require("apw.pactl")
@@ -41,10 +42,10 @@ local color_bg_mute = '#532a15' -- background color when muted
 local mixer         = 'pavucontrol' -- mixer command
 local show_text     = false     -- show percentages on progressbar
 local text_color    = '#fff' -- color of text
-pulseBar.forced_width = width
-pulseBar.step = step
 local default_backend = 'pactl'
 -- End of configuration
+pulseBar.forced_width = width
+pulseBar.step = step
 
 -- default colors overridden by Beautiful theme
 color = beautiful.apw_fg_color or color
@@ -103,19 +104,19 @@ end
 
 function pulseWidget.Up(callback, step)
   pulseWidget.backend:ChangeVolume(step or pulseBar.step, function()
-    pulseWidget._redraw()
     if callback then
       callback()
     end
+    pulseWidget._redraw()
   end)
 end
 
 function pulseWidget.Down(callback, step)
   pulseWidget.backend:ChangeVolume(-(step or pulseBar.step), function()
-    pulseWidget._redraw()
     if callback then
       callback()
     end
+    pulseWidget._redraw()
   end)
 end
 
@@ -169,7 +170,7 @@ pulseWidget:buttons(awful.util.table.join(
 
 local post_startup_timer
 local post_startup_timer_timeout = 0.1
-post_startup_timer = require('gears.timer'){
+post_startup_timer = g_timer{
   callback = function()
     pulseWidget.Update(function()
                   if pulseWidget.backend.Volume > 0 or pulseWidget.backend.Mute then
