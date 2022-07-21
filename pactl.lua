@@ -119,49 +119,53 @@ change_pending_reset = gears.timer({
 
 -- Sets the volume of the default sink to vol from 0 to 1.
 function pipewire:ChangeVolume(vol, callback)
-  local volume_change_acceleration = VOLUME_UP_ACCELERATION
-  if vol < 0 then
-    volume_change_acceleration = VOLUME_DOWN_ACCELERATION
-  end
-  if change_pending then
-    change_pending_multiplier = change_pending_multiplier + volume_change_acceleration
-    return
-  end
-  vol = vol * change_pending_multiplier
-  if vol > 1 then
-    vol = 1
-  elseif vol < -1 then
-    vol = -1
-  end
-  if (
-      (vol > 0) and ((self.Volume + vol) > 1)
-  ) then
-    vol = 1 - self.Volume
-  elseif (
-      (vol < 0) and ((self.Volume + vol) < 0)
-  ) then
-    vol = -self.Volume
-  end
-  if vol == 0 then return end
-  change_pending = true
-  change_pending_reset:again()
-
-  -- set…
-  awful.spawn.easy_async(
-  { cmd, "set-sink-volume", default_sink, string.format(
-      "%s%d", vol > 0 and '+' or '', vol*INT_VOLUME
-    )
-  },
-    function()
-      -- …and update values
-      self:UpdateState(function(o)
-        change_pending = false
-        change_pending_multiplier = change_pending_multiplier + volume_change_acceleration
-        change_pending_multiplier_reset:again()
-        return callback(o)
-      end)
+  if not pcall(function()
+    local volume_change_acceleration = VOLUME_UP_ACCELERATION
+    if vol < 0 then
+      volume_change_acceleration = VOLUME_DOWN_ACCELERATION
     end
-  )
+    if change_pending then
+      change_pending_multiplier = change_pending_multiplier + volume_change_acceleration
+      return
+    end
+    vol = vol * change_pending_multiplier
+    if vol > 1 then
+      vol = 1
+    elseif vol < -1 then
+      vol = -1
+    end
+    if (
+        (vol > 0) and ((self.Volume + vol) > 1)
+    ) then
+      vol = 1 - self.Volume
+    elseif (
+        (vol < 0) and ((self.Volume + vol) < 0)
+    ) then
+      vol = -self.Volume
+    end
+    if vol == 0 then return end
+    change_pending = true
+    change_pending_reset:again()
+
+    -- set…
+    awful.spawn.easy_async(
+    { cmd, "set-sink-volume", default_sink, string.format(
+        "%s%d", vol > 0 and '+' or '', vol*INT_VOLUME
+      )
+    },
+      function()
+        -- …and update values
+        self:UpdateState(function(o)
+          change_pending = false
+          change_pending_multiplier = change_pending_multiplier + volume_change_acceleration
+          change_pending_multiplier_reset:again()
+          return callback(o)
+        end)
+      end
+    )
+  end) then
+    callback(false)
+  end
 end
 
 
