@@ -172,6 +172,7 @@ function pipewire:ChangeVolume(vol, callback)
     )
     return true
   end) then
+    change_pending = false
     if callback then
       callback(false)
     end
