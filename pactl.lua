@@ -46,28 +46,35 @@ end
 local update_pending = false
 
 function pipewire:UpdateState(callback)
-  if update_pending then return end
-  update_pending = true
-  awful.spawn.easy_async({cmd, "get-sink-volume", default_sink}, function(out)
+  if not gears.protected_call(function()
+    if update_pending then return end
+    update_pending = true
+    awful.spawn.easy_async({cmd, "get-sink-volume", default_sink}, function(out)
 
-    local result = false
-    gears.protected_call(function()
-      local value = string.gmatch(out, 'Volume:.* (%d+)%% .*')()
-      self.Volume = tonumber(value) / 100
-    end)
-    awful.spawn.easy_async({cmd, "get-sink-mute", "@DEFAULT_SINK@"}, function(out2)
+      local result = false
       gears.protected_call(function()
-        local value2 = string.gmatch(out2, 'Mute: (.*)\n')()
-        self.Mute = value2 == "yes"
-        result = true
+        local value = string.gmatch(out, 'Volume:.* (%d+)%% .*')()
+        self.Volume = tonumber(value) / 100
       end)
-      if callback then
-        callback(result)
-      end
-      update_pending = false
-    end)
+      awful.spawn.easy_async({cmd, "get-sink-mute", "@DEFAULT_SINK@"}, function(out2)
+        gears.protected_call(function()
+          local value2 = string.gmatch(out2, 'Mute: (.*)\n')()
+          self.Mute = value2 == "yes"
+          result = true
+        end)
+        if callback then
+          callback(result)
+        end
+        update_pending = false
+      end)
 
-  end)
+    end)
+    return true
+  end) then
+    if callback then
+      callback(false)
+    end
+  end
 end
 
 -- Sets the volume of the default sink to vol from 0 to 1.
@@ -119,7 +126,7 @@ change_pending_reset = gears.timer({
 
 -- Sets the volume of the default sink to vol from 0 to 1.
 function pipewire:ChangeVolume(vol, callback)
-  if not pcall(function()
+  if not gears.protected_call(function()
     local volume_change_acceleration = VOLUME_UP_ACCELERATION
     if vol < 0 then
       volume_change_acceleration = VOLUME_DOWN_ACCELERATION
@@ -163,8 +170,11 @@ function pipewire:ChangeVolume(vol, callback)
         end)
       end
     )
+    return true
   end) then
-    callback(false)
+    if callback then
+      callback(false)
+    end
   end
 end
 
