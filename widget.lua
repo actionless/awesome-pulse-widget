@@ -150,23 +150,27 @@ end
 
 
 -- register mouse button actions
-local is_already_scrolling = false
+--local is_already_scrolling = false
 pulseWidget:buttons(awful.util.table.join(
     awful.button({ }, 1, pulseWidget.ToggleMute),
     awful.button({ }, 3, pulseWidget.LaunchMixer),
     awful.button({ }, 4, function()
-      if is_already_scrolling then
-        return
-      end
-      is_already_scrolling = true
-      pulseWidget.Up(function() is_already_scrolling = false end)
+      --if is_already_scrolling then
+      --  return
+      --end
+      --is_already_scrolling = true
+      pulseWidget.Up(
+        --function() is_already_scrolling = false end
+      )
     end),
     awful.button({ }, 5, function()
-      if is_already_scrolling then
-        return
-      end
-      is_already_scrolling = true
-      pulseWidget.Down(function() is_already_scrolling = false end)
+      --if is_already_scrolling then
+      --  return
+      --end
+      --is_already_scrolling = true
+      pulseWidget.Down(
+        --function() is_already_scrolling = false end
+      )
     end)
   )
 )
