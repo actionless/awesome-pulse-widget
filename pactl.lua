@@ -46,18 +46,18 @@ end
 local update_pending = false
 
 function pipewire:UpdateState(callback)
-  if not gears.protected_call(function()
+  if not pcall(function()
     if update_pending then return end
     update_pending = true
     awful.spawn.easy_async({cmd, "get-sink-volume", default_sink}, function(out)
 
       local result = false
-      gears.protected_call(function()
+      pcall(function()
         local value = string.gmatch(out, 'Volume:.* (%d+)%% .*')()
         self.Volume = tonumber(value) / 100
       end)
       awful.spawn.easy_async({cmd, "get-sink-mute", "@DEFAULT_SINK@"}, function(out2)
-        gears.protected_call(function()
+        pcall(function()
           local value2 = string.gmatch(out2, 'Mute: (.*)\n')()
           self.Mute = value2 == "yes"
           result = true
@@ -69,7 +69,6 @@ function pipewire:UpdateState(callback)
       end)
 
     end)
-    return true
   end) then
     if callback then
       callback(false)
@@ -126,7 +125,7 @@ change_pending_reset = gears.timer({
 
 -- Sets the volume of the default sink to vol from 0 to 1.
 function pipewire:ChangeVolume(vol, callback)
-  if not gears.protected_call(function()
+  if not pcall(function()
     local volume_change_acceleration = VOLUME_UP_ACCELERATION
     if vol < 0 then
       volume_change_acceleration = VOLUME_DOWN_ACCELERATION
@@ -170,7 +169,6 @@ function pipewire:ChangeVolume(vol, callback)
         end)
       end
     )
-    return true
   end) then
     change_pending = false
     if callback then

@@ -47,7 +47,7 @@ function pulseaudio:UpdateState(callback)
   update_pending = true
   awful.spawn.easy_async({cmd, "dump"}, function(out)
     local result = true
-    gears.protected_call(function()
+    pcall(function()
       -- find default sink
       default_sink = string.match(out, "set%-default%-sink ([^\n]+)")
       if default_sink == nil then
