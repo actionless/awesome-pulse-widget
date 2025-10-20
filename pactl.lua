@@ -17,6 +17,7 @@
 local awful = require('awful')
 local gears = require('gears')
 
+local round = gears.math.round
 
 -- Simple pipewire command bindings for Lua.
 
@@ -89,7 +90,7 @@ function pipewire:SetVolume(vol, callback)
 
   -- set…
   awful.spawn.easy_async(
-    { cmd, "set-sink-volume", default_sink, string.format("%d", math.ceil(vol*INT_VOLUME)) },
+    { cmd, "set-sink-volume", default_sink, string.format("%d", round(vol*INT_VOLUME)) },
     function()
       -- …and update values
       self:UpdateState(callback)
@@ -158,7 +159,7 @@ function pipewire:ChangeVolume(vol, callback)
     -- set…
     awful.spawn.easy_async(
     { cmd, "set-sink-volume", default_sink, string.format(
-        "%s%d", vol > 0 and '+' or '', math.ceil(vol*INT_VOLUME)
+        "%s%d", vol > 0 and '+' or '', round(vol*INT_VOLUME)
       )
     },
       function()
