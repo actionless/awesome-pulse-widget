@@ -89,7 +89,7 @@ function pipewire:SetVolume(vol, callback)
 
   -- set…
   awful.spawn.easy_async(
-    { cmd, "set-sink-volume", default_sink, string.format("%d", vol*INT_VOLUME) },
+    { cmd, "set-sink-volume", default_sink, string.format("%d", math.ceil(vol*INT_VOLUME)) },
     function()
       -- …and update values
       self:UpdateState(callback)
@@ -149,14 +149,16 @@ function pipewire:ChangeVolume(vol, callback)
     ) then
       vol = -self.Volume
     end
-    if vol == 0 then return end
+    if vol == 0 then
+      return
+    end
     change_pending = true
     change_pending_reset:again()
 
     -- set…
     awful.spawn.easy_async(
     { cmd, "set-sink-volume", default_sink, string.format(
-        "%s%d", vol > 0 and '+' or '', vol*INT_VOLUME
+        "%s%d", vol > 0 and '+' or '', math.ceil(vol*INT_VOLUME)
       )
     },
       function()
